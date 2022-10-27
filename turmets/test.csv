@@ -1,0 +1,11 @@
+exchange_from,token_from,exchange_to,token_to,blockchain_name,trading_fee,blockchain_fee
+Binance,USDT,Bybit,USDT,BEP20,1,0.8
+Binance,USDT,Bybit,USDT,ERC20,1,3.2
+Binance,USDT,Bybit,USDT,TRC20,1,0.8
+Bybit,USDT,Binance,USDT,ERC20,1,4
+Bybit,USDT,Binance,USDT,TRC20,1,0.5
+Bybit,USDT,Binance,USDT,BEP20,1,0.3
+Binance,ETH,Binance,BTC,None,0.07568819125,0
+Binance,BTC,Binance,USDT,None,20663.62,0
+Binance,ETH,Binance,USDT,None,1563.44654,0
+Bybit,BTC,Bybit,USDT,None,20624.7146,0
