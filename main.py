@@ -34,8 +34,12 @@ def compute_totals(graph: Graph, start: Node) -> pd.DataFrame:
     return outputs
 
 
-if __name__ == '__main__':
+def main():
     graph = Graph(pd.read_csv("data/graph.csv"))
     start = Node("binance", "ton", 100)
     results = compute_totals(graph, start)
     results.to_csv("outputs/result.csv")
+
+
+if __name__ == '__main__':
+    main()
