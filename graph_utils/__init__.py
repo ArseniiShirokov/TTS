@@ -1,12 +1,6 @@
 import pandas as pd
 
 
-class ShortNode:
-    def __init__(self, exchange: str, token: str):
-        self.exchange = exchange
-        self.token = token
-
-
 class Node:
     def __init__(self, exchange: str, token: str, total: float):
         self.exchange = exchange
@@ -16,12 +10,8 @@ class Node:
     def apply_transform(self, edge):
         new_exchange = edge["exchange_to"]
         new_token = edge["token_to"]
-        # Inverse edges to reduce NP maximization to minimization problem
-        value = self.total * edge["trading_fee"] + edge["blockchain_fee"]
+        value = self.total * edge["trading_fee"] - edge["blockchain_fee"]
         return Node(new_exchange, new_token, value)
-
-    def short(self):
-        return ShortNode(self.exchange, self.token)
 
 
 class Graph:
@@ -32,6 +22,14 @@ class Graph:
         edges = self.df[(self.df["exchange_from"] == node.exchange) & \
                         (self.df["token_from"] == node.token)]
         return edges
+
+    def find_edge(self, from_: Node, to_: Node) -> pd.DataFrame:
+        edge = self.df[(self.df["exchange_from"] == from_.exchange) & \
+                       (self.df["token_from"] == from_.token) & \
+                       (self.df["exchange_to"] == to_.exchange) & \
+                       (self.df["token_to"] == to_.token)
+                       ].iloc[0]
+        return edge
 
     def get_all_nodes(self) -> pd.DataFrame:
         from_pairs = self.df.loc[:, ["exchange_from", "token_from"]].drop_duplicates().values
