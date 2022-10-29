@@ -83,28 +83,31 @@ def compute_percent(graph: Graph, path: list) -> float:
     return prev.total / start.total
 
 
-def return_chains(outputs: pd.DataFrame, graph: Graph, parents: pd.DataFrame):
+def restore_path(start: Node, parents: pd.DataFrame) -> list:
+    cur_node = deepcopy(start)
+    parent_node = get_parent(parents, cur_node)
+    path = []
+    while parent_node is not None and len(path) < 20:
+        path.append(cur_node)
+        if equal(start, parent_node):
+            path.append(parent_node)
+            break
+        cur_node = parent_node
+        parent_node = get_parent(parents, cur_node)
+    return path[::-1]
+
+
+def return_cycles(outputs: pd.DataFrame, graph: Graph, parents: pd.DataFrame):
     out = list()
     for i, _ in outputs.iterrows():
         raw = outputs.loc[i]
-        path = []
         node = Node(raw['exchange'], raw['token'], 0.0)
         if raw["total"] != "no path":
-            cur_node = deepcopy(node)
-            parent_node = get_parent(parents, cur_node)
-            while parent_node is not None and not equal(node, parent_node):
-                if len(path) > 10:
-                    break
-                path.append(cur_node)
-                cur_node = parent_node
-                parent_node = get_parent(parents, cur_node)
-
-            if len(path) > 0 and equal(node, parent_node):
-                path.append(cur_node)
-                path.append(parent_node)
+            path = restore_path(node, parents)
+            if len(path) > 0 and equal(path[0], path[-1]):
                 item = dict()
-                item["percent"] = compute_percent(graph, path[::-1])
-                item["chain"] = [[node.exchange, node.token] for node in path]
+                item["cycle_percent"] = compute_percent(graph, path)
+                item["cycle"] = path
                 out.append(item)
     return out
 
@@ -114,7 +117,40 @@ def main():
     start = Node("binance", "USDT", 100)
     results, parents = compute_totals(graph, start)
     results.to_csv("outputs/result.csv")
-    pprint(return_chains(results, graph, parents))
+
+    output = return_cycles(results, graph, parents)
+    best_chain = None
+    best_percent = None
+    for i, cycle in enumerate(output):
+        # In cycle
+        nodes = graph.get_parent_nodes(cycle["cycle"][0])
+        total_in = None
+        for node in nodes:
+            if node.token == start.token and node.exchange == start.exchange:
+                edge = graph.find_edge(start, cycle["cycle"][0])
+                total_in = start.apply_transform(edge).total
+        if total_in is None:
+            continue
+        # One cycle run
+        total_finish = total_in * cycle["cycle_percent"]
+        # Out to start
+        node = cycle["cycle"][0]
+        node.total = total_finish
+        try:
+            forward_edge = graph.find_edge(node, start)
+            total_finish = node.apply_transform(forward_edge).total
+        except:
+            continue
+
+        total_percent = total_finish / start.total
+        if best_percent is None or total_percent > best_percent:
+            best_percent = total_percent
+            cycle['chain'] = [start] + cycle['cycle'] + [start]
+            cycle["chain_str"] = [[val.exchange, val.token] for val in cycle["chain"]]
+            cycle["profit_percent"] = total_percent
+            cycle["profit_diff"] = total_finish - start.total
+            best_chain = cycle
+    pprint(best_chain)
 
 
 if __name__ == '__main__':

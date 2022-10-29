@@ -23,6 +23,15 @@ class Graph:
                         (self.df["token_from"] == node.token)]
         return edges
 
+    def get_parent_nodes(self, node: Node) -> list:
+        edges = self.df[(self.df["exchange_to"] == node.exchange) & \
+                        (self.df["token_to"] == node.token)]
+        nodes = []
+        for i, _ in edges.iterrows():
+            node = Node(edges.loc[i]["exchange_from"], edges.loc[i]["token_from"], 0)
+            nodes.append(node)
+        return nodes
+
     def find_edge(self, from_: Node, to_: Node) -> pd.DataFrame:
         edge = self.df[(self.df["exchange_from"] == from_.exchange) & \
                        (self.df["token_from"] == from_.token) & \
@@ -43,3 +52,13 @@ class Graph:
                 continue
             output.loc[len(output.index)] = [exchange, token, None]
         return output
+
+    def delete_edge(self, node_from: Node, node_to: Node):
+        new_df = self.df.drop(
+            self.df[(self.df["exchange_from"] == node_from.exchange) & \
+                    (self.df["token_from"] == node_from.token) & \
+                    (self.df["exchange_to"] == node_to.exchange) & \
+                    (self.df["token_to"] == node_to.token)
+                    ].index
+        )
+        return Graph(new_df)
